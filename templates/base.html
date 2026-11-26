@@ -1,0 +1,72 @@
+{% load static %}<!doctype html>
+<html lang="th" class="h-full bg-slate-50">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Resort CRM{% endblock %} · {{ RESORT_NAME }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="h-full font-sans text-slate-800 antialiased">
+{% if user.is_authenticated %}
+{% with url_name=request.resolver_match.url_name %}
+<div class="min-h-full lg:flex">
+  <div id="sidebar-backdrop" class="fixed inset-0 z-20 hidden bg-slate-900/40 lg:hidden" data-sidebar-toggle></div>
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-30 flex w-64 -translate-x-full flex-col bg-teal-950 text-teal-50 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0">
+    <div class="flex h-16 items-center gap-3 px-6">
+      <span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-400 text-lg font-bold text-teal-950">R</span>
+      <div class="leading-tight">
+        <p class="font-semibold">{{ RESORT_NAME }}</p>
+        <p class="text-xs text-teal-300">Resort CRM</p>
+      </div>
+    </div>
+    <nav class="flex-1 space-y-1 px-3 py-4">
+      <a href="{% url 'crm:dashboard' %}" class="nav-link {% if url_name == 'dashboard' %}nav-link-active{% endif %}">📊 แดชบอร์ด</a>
+      <a href="{% url 'crm:booking_list' %}" class="nav-link {% if 'booking' in url_name %}nav-link-active{% endif %}">🗓️ การจอง</a>
+      <a href="{% url 'crm:room_board' %}" class="nav-link {% if url_name == 'room_board' %}nav-link-active{% endif %}">🏝️ ผังห้องพัก</a>
+      <a href="{% url 'crm:guest_list' %}" class="nav-link {% if 'guest' in url_name %}nav-link-active{% endif %}">👥 ลูกค้า</a>
+      {% if user.is_staff %}
+      <a href="{% url 'admin:index' %}" class="nav-link">⚙️ ผู้ดูแลระบบ</a>
+      {% endif %}
+    </nav>
+    <div class="border-t border-teal-900 p-4 text-xs text-teal-300">
+      เข้าสู่ระบบเป็น <span class="font-medium text-teal-100">{{ user.get_full_name|default:user.username }}</span>
+    </div>
+  </aside>
+
+  <div class="min-w-0 flex-1">
+    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-8">
+      <div class="flex items-center gap-3">
+        <button type="button" class="btn-ghost lg:hidden" data-sidebar-toggle aria-label="เปิดเมนู">☰</button>
+        <h1 class="text-lg font-semibold">{% block heading %}{% endblock %}</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        {% block actions %}{% endblock %}
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button class="btn-ghost text-sm">ออกจากระบบ</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="p-4 lg:p-8">
+      {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" data-autodismiss>{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endwith %}
+{% else %}
+  {% block auth %}{% endblock %}
+{% endif %}
+<div id="toast-root" class="pointer-events-none fixed bottom-4 right-4 z-50 space-y-2"></div>
+<script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

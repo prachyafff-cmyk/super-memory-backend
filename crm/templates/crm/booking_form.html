@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post" class="card mx-auto max-w-3xl p-6" novalidate
+      data-booking-form data-availability-url="{% url 'crm:api_availability' %}"
+      data-booking-id="{{ booking.pk|default:'' }}">
+  {% csrf_token %}
+  <div class="grid gap-5 sm:grid-cols-2">
+    {% include "crm/_form_fields.html" %}
+  </div>
+  <p id="availability-hint" class="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600" hidden></p>
+  <div class="mt-6 flex justify-end gap-2">
+    <a href="{% if booking %}{{ booking.get_absolute_url }}{% else %}{% url 'crm:booking_list' %}{% endif %}" class="btn-secondary">ยกเลิก</a>
+    <button class="btn-primary">บันทึกการจอง</button>
+  </div>
+</form>
+<p class="mx-auto mt-3 max-w-3xl text-center text-xs text-slate-400">
+  ยังไม่มีข้อมูลลูกค้า? <a href="{% url 'crm:guest_create' %}" class="text-teal-700 hover:underline">เพิ่มลูกค้าใหม่</a>
+</p>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}{% load crm_extras %}
+{% block title %}{{ booking.code }}{% endblock %}
+{% block heading %}<a href="{% url 'crm:booking_list' %}" class="text-slate-400 hover:text-slate-600">การจอง /</a> {{ booking.code }}{% endblock %}
+{% block actions %}<a href="{% url 'crm:booking_update' booking.pk %}" class="btn-secondary text-sm">แก้ไข</a>{% endblock %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <section class="card p-5 lg:col-span-2">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <a href="{{ booking.guest.get_absolute_url }}" class="text-xl font-semibold text-teal-700 hover:underline">{{ booking.guest }}</a>
+        <p class="text-sm text-slate-500">{{ booking.guest.phone }} {% if booking.guest.tier != 'regular' %}· <span class="badge {{ booking.guest.tier|badge }}">{{ booking.guest.get_tier_display }}</span>{% endif %}</p>
+      </div>
+      <span class="badge text-sm {{ booking.status|badge }}">{{ booking.get_status_display }}</span>
+    </div>
+    <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-3">
+      <div><dt class="text-slate-500">ห้อง</dt><dd class="font-medium">{{ booking.room.number }} · {{ booking.room.room_type.name }}</dd></div>
+      <div><dt class="text-slate-500">เช็คอิน</dt><dd class="font-medium">{{ booking.check_in|date:"D j M Y" }}</dd></div>
+      <div><dt class="text-slate-500">เช็คเอาท์</dt><dd class="font-medium">{{ booking.check_out|date:"D j M Y" }}</dd></div>
+      <div><dt class="text-slate-500">จำนวนคืน</dt><dd class="font-medium">{{ booking.nights }} คืน</dd></div>
+      <div><dt class="text-slate-500">ผู้เข้าพัก</dt><dd class="font-medium">ผู้ใหญ่ {{ booking.adults }}{% if booking.children %} · เด็ก {{ booking.children }}{% endif %}</dd></div>
+      <div><dt class="text-slate-500">ช่องทาง</dt><dd class="font-medium">{{ booking.get_source_display }}</dd></div>
+    </dl>
+    {% if booking.special_requests %}<div class="mt-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">⭐ {{ booking.special_requests|linebreaksbr }}</div>{% endif %}
+
+    <div class="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-5">
+      {% if booking.status == 'pending' %}
+        <form method="post" action="{% url 'crm:booking_action' booking.pk 'confirm' %}">{% csrf_token %}<button class="btn-secondary">✓ ยืนยันการจอง</button></form>
+      {% endif %}
+      {% if booking.status == 'pending' or booking.status == 'confirmed' %}
+        {% if booking.check_in <= today %}
+        <form method="post" action="{% url 'crm:booking_action' booking.pk 'check_in' %}">{% csrf_token %}<button class="btn-primary">🛬 เช็คอิน</button></form>
+        {% endif %}
+        <form method="post" action="{% url 'crm:booking_action' booking.pk 'cancel' %}" data-confirm="ยืนยันยกเลิกการจอง {{ booking.code }}?">{% csrf_token %}<button class="btn-danger">ยกเลิกการจอง</button></form>
+      {% endif %}
+      {% if booking.status == 'checked_in' %}
+        <form method="post" action="{% url 'crm:booking_action' booking.pk 'check_out' %}">{% csrf_token %}<button class="btn-primary">🛫 เช็คเอาท์</button></form>
+      {% endif %}
+    </div>
+    <p class="mt-4 text-xs text-slate-400">สร้างเมื่อ {{ booking.created_at|date:"j M Y H:i" }}{% if booking.created_by %} โดย {{ booking.created_by }}{% endif %}</p>
+  </section>
+
+  <section class="card p-5">
+    <h2 class="section-title mb-4">การชำระเงิน</h2>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between"><dt class="text-slate-500">{{ booking.nightly_rate|baht }} × {{ booking.nights }} คืน</dt><dd class="font-medium">{{ booking.total_amount|baht:2 }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">ชำระแล้ว</dt><dd class="font-medium text-emerald-700">{{ booking.paid_amount|baht:2 }}</dd></div>
+      <div class="flex justify-between border-t border-slate-100 pt-2 text-base"><dt>คงค้าง</dt><dd class="font-semibold {% if booking.balance > 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ booking.balance|baht:2 }}</dd></div>
+    </dl>
+    <ul class="mt-4 divide-y divide-slate-100 text-sm">
+      {% for p in payments %}
+      <li class="flex justify-between py-2"><span>{{ p.get_method_display }}<span class="block text-xs text-slate-400">{{ p.paid_at|date:"j M y H:i" }}{% if p.reference %} · {{ p.reference }}{% endif %}</span></span><span class="font-medium">{{ p.amount|baht:2 }}</span></li>
+      {% endfor %}
+    </ul>
+    {% if booking.status != 'cancelled' %}
+    <form method="post" class="mt-4 space-y-3 rounded-xl bg-slate-50 p-4" novalidate>
+      {% csrf_token %}
+      {% include "crm/_form_fields.html" %}
+      <button class="btn-primary w-full">รับชำระเงิน</button>
+    </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

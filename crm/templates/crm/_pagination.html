@@ -1,0 +1,9 @@
+{% if page.has_other_pages %}
+<nav class="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm">
+  <span class="text-slate-500">หน้า {{ page.number }} / {{ page.paginator.num_pages }} · ทั้งหมด {{ page.paginator.count }} รายการ</span>
+  <div class="flex gap-2">
+    {% if page.has_previous %}<a class="btn-secondary" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.previous_page_number }}">← ก่อนหน้า</a>{% endif %}
+    {% if page.has_next %}<a class="btn-secondary" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.next_page_number }}">ถัดไป →</a>{% endif %}
+  </div>
+</nav>
+{% endif %}

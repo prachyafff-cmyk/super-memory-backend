@@ -1,0 +1,82 @@
+{% extends "base.html" %}{% load crm_extras %}
+{% block title %}{{ guest.full_name }}{% endblock %}
+{% block heading %}<a href="{% url 'crm:guest_list' %}" class="text-slate-400 hover:text-slate-600">ลูกค้า /</a> {{ guest.full_name }}{% endblock %}
+{% block actions %}
+<a href="{% url 'crm:guest_update' guest.pk %}" class="btn-secondary text-sm">แก้ไข</a>
+<a href="{% url 'crm:booking_create' %}?guest={{ guest.pk }}" class="btn-primary text-sm">+ จองห้อง</a>
+{% endblock %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6">
+    <section class="card p-5">
+      <div class="flex items-start justify-between">
+        <div>
+          <h2 class="text-xl font-semibold">{{ guest.full_name }}</h2>
+          <p class="text-sm text-slate-500">{{ guest.nationality }}{% if guest.birthday %} · วันเกิด {{ guest.birthday|date:"j M" }}{% endif %}</p>
+        </div>
+        <span class="badge {{ guest.tier|badge }}">{{ guest.get_tier_display }}</span>
+      </div>
+      <dl class="mt-5 space-y-2 text-sm">
+        <div class="flex justify-between"><dt class="text-slate-500">โทรศัพท์</dt><dd>{% if guest.phone %}<a class="text-teal-700" href="tel:{{ guest.phone }}">{{ guest.phone }}</a>{% else %}-{% endif %}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">อีเมล</dt><dd>{% if guest.email %}<a class="text-teal-700" href="mailto:{{ guest.email }}">{{ guest.email }}</a>{% else %}-{% endif %}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">LINE</dt><dd>{{ guest.line_id|default:"-" }}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">รับข่าวสาร</dt><dd>{{ guest.marketing_opt_in|yesno:"ยินยอม,ไม่ยินยอม" }}</dd></div>
+      </dl>
+      {% if guest.notes %}<div class="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">📝 {{ guest.notes|linebreaksbr }}</div>{% endif %}
+    </section>
+    <section class="grid grid-cols-2 gap-4">
+      <div class="stat-card"><p class="stat-label">เข้าพักแล้ว</p><p class="stat-value">{{ stays }} <span class="text-base font-normal">ครั้ง</span></p></div>
+      <div class="stat-card"><p class="stat-label">ยอดใช้จ่ายรวม</p><p class="stat-value text-teal-700">{{ total_spent|baht }}</p></div>
+    </section>
+  </div>
+
+  <div class="space-y-6 lg:col-span-2">
+    <section class="card overflow-hidden">
+      <h2 class="section-title border-b border-slate-100 p-5">ประวัติการจอง</h2>
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead><tr><th>รหัส</th><th>ห้อง</th><th>วันที่</th><th class="text-right">ยอด</th><th>สถานะ</th></tr></thead>
+          <tbody>
+          {% for b in bookings %}
+            <tr class="hover:bg-slate-50">
+              <td><a href="{{ b.get_absolute_url }}" class="font-medium text-teal-700 hover:underline">{{ b.code }}</a></td>
+              <td class="text-sm">{{ b.room.number }} · {{ b.room.room_type.name }}</td>
+              <td class="text-sm">{{ b.check_in|date:"j M y" }} – {{ b.check_out|date:"j M y" }}</td>
+              <td class="text-right text-sm">{{ b.total_amount|baht }}</td>
+              <td><span class="badge {{ b.status|badge }}">{{ b.get_status_display }}</span></td>
+            </tr>
+          {% empty %}<tr><td colspan="5" class="empty">ยังไม่มีประวัติการจอง</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card p-5">
+      <h2 class="section-title mb-4">บันทึกการติดต่อ</h2>
+      <form method="post" class="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2" novalidate>
+        {% csrf_token %}
+        {% include "crm/_form_fields.html" %}
+        <div class="sm:col-span-2 flex justify-end"><button class="btn-primary">บันทึกการติดต่อ</button></div>
+      </form>
+      <ol class="mt-6 space-y-4 border-l-2 border-slate-100 pl-5">
+        {% for it in interactions %}
+        <li class="relative">
+          <span class="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full {% if it.done or not it.follow_up_date %}bg-slate-300{% else %}bg-amber-400{% endif %}"></span>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="font-medium">{{ it.subject }}</p>
+              <p class="text-xs text-slate-500">{{ it.get_channel_display }} · {{ it.created_at|date:"j M Y H:i" }}{% if it.staff %} · {{ it.staff }}{% endif %}</p>
+              {% if it.note %}<p class="mt-1 text-sm text-slate-600">{{ it.note|linebreaksbr }}</p>{% endif %}
+              {% if it.follow_up_date %}<p class="mt-1 text-xs {% if it.done %}text-slate-400 line-through{% else %}text-amber-700{% endif %}">ติดตาม {{ it.follow_up_date|date:"j M Y" }}</p>{% endif %}
+            </div>
+            {% if it.follow_up_date and not it.done %}
+            <form method="post" action="{% url 'crm:interaction_done' it.pk %}">{% csrf_token %}<button class="btn-secondary text-xs">เสร็จแล้ว</button></form>
+            {% endif %}
+          </div>
+        </li>
+        {% empty %}<li class="text-sm text-slate-400">ยังไม่มีบันทึก</li>{% endfor %}
+      </ol>
+    </section>
+  </div>
+</div>
+{% endblock %}

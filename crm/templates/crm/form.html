@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post" class="card mx-auto max-w-3xl p-6" novalidate>
+  {% csrf_token %}
+  <div class="grid gap-5 sm:grid-cols-2">
+    {% include "crm/_form_fields.html" %}
+  </div>
+  <div class="mt-6 flex justify-end gap-2">
+    <a href="{{ back_url }}" class="btn-secondary">ยกเลิก</a>
+    <button class="btn-primary">บันทึก</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}{% load crm_extras %}
+{% block title %}แดชบอร์ด{% endblock %}
+{% block heading %}แดชบอร์ด · {{ today|date:"j M Y" }}{% endblock %}
+{% block actions %}<a href="{% url 'crm:booking_create' %}" class="btn-primary text-sm">+ จองห้อง</a>{% endblock %}
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="stat-card">
+    <p class="stat-label">อัตราเข้าพักวันนี้</p>
+    <p class="stat-value">{{ occupancy }}%</p>
+    <div class="mt-3 h-2 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-teal-500" style="width: {{ occupancy }}%"></div></div>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">แขกที่พักอยู่ (ห้อง)</p>
+    <p class="stat-value">{{ in_house }} <span class="text-base font-normal text-slate-400">/ {{ total_rooms }}</span></p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">เช็คอิน / เช็คเอาท์วันนี้</p>
+    <p class="stat-value">{{ arrivals|length }} <span class="text-slate-300">/</span> {{ departures|length }}</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">รายรับเดือนนี้</p>
+    <p class="stat-value text-teal-700">{{ month_revenue|baht }}</p>
+    <p class="mt-1 text-xs text-slate-400">ลูกค้าในระบบ {{ guest_count }} ราย</p>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 xl:grid-cols-3">
+  <section class="card p-5 xl:col-span-2">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="section-title">รายรับ 14 วันล่าสุด</h2>
+      <span id="revenue-sum" class="text-sm text-slate-500"></span>
+    </div>
+    <div id="revenue-chart" data-url="{% url 'crm:api_revenue' %}?days=14" class="flex h-52 items-end gap-1.5">
+      <p class="m-auto text-sm text-slate-400">กำลังโหลด…</p>
+    </div>
+  </section>
+
+  <section class="card p-5">
+    <h2 class="section-title mb-4">สถานะห้องพัก</h2>
+    <ul class="space-y-3">
+      {% for value, label, count in room_status %}
+      <li class="flex items-center justify-between">
+        <span class="badge {{ value|badge }}">{{ label }}</span>
+        <span class="font-semibold">{{ count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'crm:room_board' %}" class="mt-5 block text-sm font-medium text-teal-700 hover:underline">ดูผังห้องทั้งหมด →</a>
+  </section>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="card">
+    <h2 class="section-title border-b border-slate-100 p-5">🛬 เช็คอินวันนี้</h2>
+    {% for b in arrivals %}
+    <a href="{{ b.get_absolute_url }}" class="list-row">
+      <div><p class="font-medium">{{ b.guest }}</p><p class="text-xs text-slate-500">{{ b.code }} · {{ b.nights }} คืน</p></div>
+      <span class="room-chip">ห้อง {{ b.room.number }}</span>
+    </a>
+    {% empty %}<p class="empty">ไม่มีรายการเช็คอินวันนี้</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2 class="section-title border-b border-slate-100 p-5">🛫 เช็คเอาท์วันนี้ / เกินกำหนด</h2>
+    {% for b in departures %}
+    <a href="{{ b.get_absolute_url }}" class="list-row">
+      <div><p class="font-medium">{{ b.guest }}</p>
+        <p class="text-xs {% if b.check_out < today %}text-rose-600{% else %}text-slate-500{% endif %}">{{ b.code }} · ออก {{ b.check_out|date:"j M" }}</p></div>
+      <span class="room-chip">ห้อง {{ b.room.number }}</span>
+    </a>
+    {% empty %}<p class="empty">ไม่มีรายการเช็คเอาท์วันนี้</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2 class="section-title border-b border-slate-100 p-5">📞 งานติดตามลูกค้า (7 วัน)</h2>
+    {% for it in follow_ups %}
+    <div class="list-row">
+      <a href="{{ it.guest.get_absolute_url }}" class="min-w-0">
+        <p class="truncate font-medium">{{ it.subject }}</p>
+        <p class="text-xs {% if it.follow_up_date < today %}text-rose-600{% else %}text-slate-500{% endif %}">{{ it.guest }} · {{ it.get_channel_display }} · {{ it.follow_up_date|date:"j M" }}</p>
+      </a>
+      <form method="post" action="{% url 'crm:interaction_done' it.pk %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn-secondary text-xs">เสร็จแล้ว</button>
+      </form>
+    </div>
+    {% empty %}<p class="empty">ไม่มีงานติดตามค้าง 🎉</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2 class="section-title border-b border-slate-100 p-5">🆕 การจองล่าสุด</h2>
+    {% for b in recent_bookings %}
+    <a href="{{ b.get_absolute_url }}" class="list-row">
+      <div><p class="font-medium">{{ b.guest }}</p><p class="text-xs text-slate-500">{{ b.code }} · {{ b.check_in|date:"j M" }} – {{ b.check_out|date:"j M" }} · {{ b.get_source_display }}</p></div>
+      <span class="badge {{ b.status|badge }}">{{ b.get_status_display }}</span>
+    </a>
+    {% empty %}<p class="empty">ยังไม่มีการจอง</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

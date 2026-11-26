@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% load crm_extras %}
+{% block title %}ลูกค้า{% endblock %}
+{% block heading %}ลูกค้า{% endblock %}
+{% block actions %}<a href="{% url 'crm:guest_create' %}" class="btn-primary text-sm">+ เพิ่มลูกค้า</a>{% endblock %}
+{% block content %}
+<form method="get" class="mb-4 flex flex-col gap-2 sm:flex-row">
+  <input type="search" name="q" value="{{ q }}" placeholder="ค้นหาชื่อ เบอร์โทร อีเมล หรือ LINE ID" class="input sm:max-w-sm">
+  <select name="tier" class="input sm:w-44" data-autosubmit>
+    <option value="">ทุกระดับสมาชิก</option>
+    {% for v, l in tiers %}<option value="{{ v }}" {% if v == tier %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <button class="btn-secondary">ค้นหา</button>
+</form>
+
+<div class="card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>ชื่อลูกค้า</th><th>ติดต่อ</th><th>ระดับ</th><th class="text-right">เข้าพัก (ครั้ง)</th><th>พักล่าสุด</th></tr></thead>
+      <tbody>
+      {% for g in page %}
+        <tr class="hover:bg-slate-50">
+          <td><a href="{{ g.get_absolute_url }}" class="font-medium text-teal-700 hover:underline">{{ g.full_name }}</a>
+            <p class="text-xs text-slate-400">{{ g.nationality }}</p></td>
+          <td class="text-sm">{{ g.phone|default:"-" }}<p class="text-xs text-slate-400">{{ g.email }}</p></td>
+          <td><span class="badge {{ g.tier|badge }}">{{ g.get_tier_display }}</span></td>
+          <td class="text-right font-medium">{{ g.stays }}</td>
+          <td class="text-sm text-slate-500">{{ g.last_stay|date:"j M Y"|default:"-" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">ไม่พบลูกค้า</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "crm/_pagination.html" %}
+</div>
+{% endblock %}
